@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: simple-pipeline-pac
+  name: devsecops-pipeline-pac
 spec:
   params:
   - default: http://gitea-devsecops-ci.apps.cluster-c4lhj.c4lhj.sandbox1290.opentlc.com/gitea/spring-petclinic
@@ -84,6 +84,58 @@ spec:
     workspaces:
     - name: output
       workspace: workspace
+  - name: unit-tests
+    params:
+      - name: GOALS
+        value:
+          - package
+          - '-f'
+          - spring-petclinic
+    runAfter:
+      - source-clone
+    taskRef:
+      kind: Task
+      name: maven
+    workspaces:
+      - name: source
+        workspace: workspace
+      - name: maven-settings
+        workspace: maven-settings
+  - name: code-analysis
+    params:
+      - name: GOALS
+        value:
+          - install
+          - 'sonar:sonar'
+          - '-f'
+          - spring-petclinic
+          - '-Dsonar.host.url=http://sonarqube:9000'
+          - '-Dsonar.userHome=/tmp/sonar'
+          - '-DskipTests=true'
+    runAfter:
+      - source-clone
+    taskRef:
+      kind: Task
+      name: maven
+    workspaces:
+      - name: source
+        workspace: workspace
+      - name: maven-settings
+        workspace: maven-settings
+  - name: dependency-report
+    params:
+      - name: SOURCE_DIR
+        value: spring-petclinic
+    runAfter:
+      - source-clone
+    taskRef:
+      kind: Task
+      name: dependency-report
+    workspaces:
+      - name: source
+        workspace: workspace
+      - name: maven-settings
+        workspace: maven-settings  
   - name: release-app
     params:
     - name: GOALS
@@ -95,7 +147,10 @@ spec:
       - -DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/
       - -DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/
     runAfter:
-    - source-clone
+      - code-analysis
+      - unit-tests
+      - dependency-report
+      - crda-scan
     taskRef:
       kind: Task
       name: maven
@@ -258,6 +313,20 @@ spec:
     workspaces:
     - name: source
       workspace: workspace
+  - name: crda-scan
+    params:
+      - name: manifest
+        value: pom.xml
+      - name: application_folder
+        value: spring-petclinic
+    runAfter:
+      - source-clone
+    taskRef:
+      kind: ClusterTask
+      name: crda-scan
+    workspaces:
+      - name: source
+        workspace: workspace
   workspaces:
   - name: workspace
   - name: maven-settings

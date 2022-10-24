@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: simple-pipeline-pac
+  name: devsecops-pipeline-pac
   annotations:
   # The event we are targeting as seen from the webhook payload
   # this can be an array too, i.e: [pull_request, push]
@@ -20,6 +20,7 @@ metadata:
     pipelinesascode.tekton.dev/task-4: ".tekton/tasks/task-dependency-report.yaml"
     pipelinesascode.tekton.dev/task-5: ".tekton/tasks/task-gatling.yaml"
     pipelinesascode.tekton.dev/task-6: ".tekton/tasks/task-s2i-java-11-fixed.yaml"
+    pipelinesascode.tekton.dev/task-10: ".tekton/tasks/task-s2i-java-11.yaml"
     pipelinesascode.tekton.dev/task-7: ".tekton/tasks/task-syft-sbom.yaml"
     pipelinesascode.tekton.dev/task-8: ".tekton/tasks/task-zap-proxy.yaml"
     pipelinesascode.tekton.dev/task-9: ".tekton/tasks/task-git-update-deployment.yaml"
@@ -34,7 +35,7 @@ metadata:
 
 spec:
   pipelineRef:
-    name: simple-pipeline-pac
+    name: devsecops-pipeline-pac
   workspaces:
   - name: workspace
     persistentVolumeClaim:
